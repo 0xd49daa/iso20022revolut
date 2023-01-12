@@ -1,8 +1,8 @@
-import { XMLParser } from "fast-xml-parser";
-import fs from "fs";
-import { ISO20022JSON, PmtInfJSON } from "./types";
 import * as csv from '@fast-csv/format';
+import fs from "fs";
 import { strict as assert } from 'node:assert';
+import { processPayments } from "./common";
+import { PlainPaymentInput } from "./types";
 
 const HEADER = {
   NAME: 'Name',
@@ -22,23 +22,24 @@ async function run() {
     assert(!!filename, 'yarn run parse input.xml')
   }
 
-  const json = await parseFile(filename);
-
-  await processPayments(filename, json)
+  await convertToCsv(filename)
 }
 
-async function parseFile(filename: string): Promise<ISO20022JSON> {
-  const parser = new XMLParser();
-  const data = await fs.promises.readFile(filename);
-  return parser.parse(data) as ISO20022JSON;
+function mapToCsv(input: PlainPaymentInput) {
+  return {
+    [HEADER.NAME]: input.name,
+    [HEADER.RECIPIENT_TYPE]: input.recipientType,
+    [HEADER.IBAN]: input.IBAN,
+    [HEADER.BIC]: input.BIC,
+    [HEADER.COUNTRY]: input.bankCountry,
+    [HEADER.CURRENCY]: input.currency,
+    [HEADER.AMOUNT]: input.amount,
+    [HEADER.REF]: input.reference
+  }
 }
 
-async function processPayments(filename: string, json: ISO20022JSON): Promise<void> {
+async function convertToCsv(filename: string): Promise<void> {
   return new Promise(async (resolve, reject) => {
-    console.log('json', json)
-
-    const payments = json.Document.CstmrCdtTrfInitn.PmtInf;
-
     const csvStream = csv.format({ headers: true });
     const fStream = fs.createWriteStream(filename + '.csv')
 
@@ -49,38 +50,14 @@ async function processPayments(filename: string, json: ISO20022JSON): Promise<vo
         resolve() 
       });
   
-    for (const payment of payments) {
-      csvStream.write(await csvRow(payment));
+    const plainPayments = await processPayments(filename)
+
+    for (const payment of plainPayments) {
+      csvStream.write(mapToCsv(payment));
     }
   
     csvStream.end();
   })
-}
-
-async function csvRow(payment: PmtInfJSON) {
-  const name = payment.CdtTrfTxInf.Cdtr.Nm
-  const recipientType = ['SALA', 'PRCP', 'RENT'].includes(payment.CdtTrfTxInf.Purp.Cd) ?
-    'INDIVIDUAL': 'COMPANY'
-  const IBAN = payment.CdtTrfTxInf.CdtrAcct.Id.IBAN
-  const BIC = payment.CdtTrfTxInf.CdtrAgt.FinInstnId.BIC
-  const bankCountry = payment.CdtTrfTxInf.Cdtr.PstlAdr.Ctry
-  const currency = payment.DbtrAcct.Ccy || "EUR";
-
-  const amount = payment.CdtTrfTxInf.Amt.InstdAmt
-  const reference = ['SALA', 'PRCP', 'RENT'].includes(payment.CdtTrfTxInf.Purp.Cd) ?
-    payment.CdtTrfTxInf.RmtInf.Strd.AddtlRmtInf:
-    payment.CdtTrfTxInf.RmtInf.Strd.CdtrRefInf.Ref
-
-  return {
-    [HEADER.NAME]: name,
-    [HEADER.RECIPIENT_TYPE]: recipientType,
-    [HEADER.IBAN]: IBAN,
-    [HEADER.BIC]: BIC,
-    [HEADER.COUNTRY]: bankCountry,
-    [HEADER.CURRENCY]: currency,
-    [HEADER.AMOUNT]: amount,
-    [HEADER.REF]: reference
-  }
 }
 
 run();
