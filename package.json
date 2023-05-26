@@ -1,0 +1,27 @@
+{
+  "name": "xml-revolut",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "@fast-csv/format": "^4.3.5",
+    "@fast-csv/parse": "^4.3.5",
+    "@types/lodash": "^4.14.191",
+    "@types/moment": "^2.13.0",
+    "@types/node": "^18.11.18",
+    "@types/uuid": "^9.0.0",
+    "fast-xml-parser": "^4.0.12",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "ts-node": "^10.9.1",
+    "uuid": "^9.0.0",
+    "xmlbuilder": "^15.1.1"
+  },
+  "scripts": {
+    "parse": "ts-node src/parse.ts",
+    "match": "ts-node src/match.ts"
+  }
+}
