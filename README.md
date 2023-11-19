@@ -28,7 +28,7 @@ Večina računovodskih programov v Sloveniji (Minimax, AccountingBox, Pantheon, 
 
 ### Install dependencies / Namestite odvisnosti
 ```
-yarn init
+yarn
 ```
 
 ### Create Revolut CSV for bulk transfer from ISO 20022 payment XML 
